@@ -29,7 +29,7 @@ Header của trang công khai lấy phiên bằng `useSession()` ở client. N�
 
 - **Credentials**: form gọi Server Action `loginWithCredentials`, action này gọi `signIn('credentials')` ([login/actions.ts](src/app/(public)/login/actions.ts)). Trong `authorize()`, dữ liệu được kiểm tra bằng zod rồi so mật khẩu bằng `bcrypt.compare`. Nếu email không tồn tại, hàm vẫn so với một hash giả để thời gian phản hồi giống nhau, người ngoài không đoán được email nào có thật.
 - **Chống dò mật khẩu**: sai 5 lần với cùng cặp *email + IP*, hoặc sai 20 lần từ cùng một IP, trong 10 phút thì bị khoá. Khi bị khoá, hàm ném `CredentialsSignin` có `code = 'rate_limited'` để giao diện hiện thông báo riêng.
-- **GitHub OAuth**: hàm `profile()` gán vai trò theo biến `ADMIN_GITHUB_LOGINS`. Khi không có database adapter, Auth.js tự sinh UUID mới cho `user.id` ở mỗi lần đăng nhập. Vì vậy callback `jwt` dùng `github:<providerAccountId>` làm id để id không đổi giữa các lần đăng nhập.
+- **GitHub OAuth**: hàm `profile()` gán vai trò theo biến `ADMIN_GITHUB_LOGINS`. Khi không có database adapter, Auth.js tự sinh UUID mới cho `user.id` ở mỗi lần đăng nhập. Vì vậy callback `jwt` dùng `github:<providerAccountId>` làm id để id không đổi giữa các lần đăng nhập. Đã chạy thử với một OAuth app thật và đăng nhập thành công.
 - **`callbackUrl`**: được lọc qua `safeCallbackUrl()`. Hàm này phân tích chuỗi bằng `new URL` rồi so origin. Reviewer đã tái hiện được lỗi open redirect với chuỗi `"/\t/evil.example"`, vì trình duyệt bỏ ký tự tab nên chuỗi này thành `//evil.example`. Lỗi đã được sửa, có unit test và đã kiểm tra lại bằng curl (mục 6).
 
 ## 3. Sơ đồ các lớp bảo vệ
@@ -150,19 +150,8 @@ PageSpeed Insights cần một URL công khai nên chưa đo được. Khi deplo
 | `npm test` (`can()`, `safeCallbackUrl()`) | 5/5 pass |
 | `next build` (cả hai bản) | Thành công, 31 trang |
 | `node reports/scripts/e2e-auth.mjs` (puppeteer trên bản production) | **14/14 PASS**, xem [reports/e2e-auth.txt](reports/e2e-auth.txt) |
+| Đăng nhập GitHub OAuth (chạy thử thủ công trên trình duyệt) | `/api/auth/providers` có `github`; nút chuyển sang `github.com/login/oauth/authorize` với callback `/api/auth/callback/github`; đăng nhập thành công, quay về ứng dụng với vai trò `user` |
 | Open redirect `GET /login?callbackUrl=/%09/evil.example` khi đã đăng nhập | 307 → `/dashboard` (trước khi sửa thì chuyển ra domain ngoài) |
 | Review độc lập (agent code-reviewer) | 1 lỗi cao, 2 trung bình, 6 thấp. Đã sửa: open redirect, og:image `/products`, id GitHub ổn định, rate-limit theo IP và giới hạn kích thước Map, ẩn nút demo với admin, `retry()` trong error.tsx, `og:url` của /about. Còn lại: `alt` ảnh OG cố định cho mọi sản phẩm, font OG đọc từ `node_modules` (có thể không được đóng gói khi deploy standalone) |
 
 Các mục e2e: khách vào `/admin` → `/login?callbackUrl=/admin`; user đăng nhập bằng form → `/dashboard`, header có tên và vai trò; **user gọi Server Action xoá → "403 — Vai trò user không có quyền product:write"**, sản phẩm vẫn còn; user vào `/admin` → `/403`; admin gỡ #141 → `/products/141` trả 404 ngay, `/products` và `sitemap.xml` không còn sản phẩm này (ISR theo yêu cầu); khôi phục → 200; sai mật khẩu → thông báo lỗi; sai 5 lần → nhập đúng vẫn bị khoá.
-
-## 7. Ảnh chụp cần tự bổ sung
-
-- [ ] Trang `/login` (2 cách đăng nhập) và header sau khi đăng nhập user / admin
-- [ ] Đăng nhập GitHub thành công, sau khi đã tạo OAuth app và điền `.env.local`
-- [ ] `/403` khi user vào `/admin`; thông báo 403 khi user bấm "Xoá sản phẩm #88" ở `/dashboard`
-- [ ] DevTools → Application → Cookies: `authjs.session-token` có cờ HttpOnly
-- [ ] View page source `/products/88`: title, canonical, og:image, JSON-LD
-- [ ] Ảnh `/products/88/opengraph-image-…` (mở link trong thẻ og:image)
-- [ ] Rich Results Test (dán đoạn mã HTML) cho Product và BreadcrumbList
-- [ ] Lighthouse bản trước và bản sau (mở `reports/lighthouse/*.report.html`)
-- [ ] Kết quả `npm run build` (bảng ○ ● ƒ)
