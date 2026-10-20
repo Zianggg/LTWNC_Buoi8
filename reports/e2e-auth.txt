@@ -1,0 +1,16 @@
+﻿PASS  Khách vào /admin → /login?callbackUrl=/admin  — http://localhost:3000/login?callbackUrl=%2Fadmin
+PASS  user đăng nhập bằng form → /dashboard  — http://localhost:3000/dashboard
+PASS  Header (Server Component) có tên + vai trò
+PASS  user gọi Server Action xoá → bị từ chối 403  — 403 — Vai trò "user" không có quyền product:write.
+PASS  Sau khi bị từ chối, /products/88 vẫn còn
+PASS  user vào /admin → /403 (proxy)  — http://localhost:3000/403
+PASS  admin đăng nhập → /admin  — http://localhost:3000/admin
+PASS  admin gỡ #141 bằng Server Action
+PASS  ISR theo yêu cầu: /products/141 → 404 ngay
+PASS  ISR theo yêu cầu: /products không còn "Basketball Rim"
+PASS  sitemap.xml bỏ /products/141
+PASS  admin khôi phục #141
+PASS  Sai mật khẩu → "Email hoặc mật khẩu không đúng."  — Email hoặc mật khẩu không đúng.
+PASS  Sai 5 lần → đúng mật khẩu vẫn bị khoá 10 phút  — Sai mật khẩu quá nhiều lần. Tài khoản bị tạm khoá 10 phút.
+
+14/14 PASS
